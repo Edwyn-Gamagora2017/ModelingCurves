@@ -39,6 +39,7 @@ vec3 p0( -2,-2,0 );
 vec3 p1( -1,1,0 );
 vec3 p2( 1,1,0 );
 vec3 p3( 2,-2,0 );
+vec3 p4( 0,2,0 );
 vec3 v1( 1,5,0 );
 vec3 v2( 1,-5,0 );
 std::deque<std::deque<vec3>> bernsteinControlVertices;
@@ -144,6 +145,24 @@ std::deque<vec3> bernstein( std::deque<vec3> controlPoints, int amountSamples ){
     return result;
 }
 
+void adjustContinuity1( std::deque<vec3> controlPoints1, std::deque<vec3> controlPoints2 ){
+    vec3 * curve1Last = &controlPoints1[controlPoints1.size()-1];
+    vec3 * curve2First = &controlPoints2[0];
+
+    // Set the last point from the first curve to the first point of the second curve
+    controlPoints2[0] = vec3( controlPoints1[controlPoints1.size()-1].getX(), controlPoints1[controlPoints1.size()-1].getY(), controlPoints1[controlPoints1.size()-1].getZ() );
+}
+
+void adjustContinuity2( std::deque<vec3> controlPoints1, std::deque<vec3> controlPoints2 ){
+    vec3 * curve1Last = &controlPoints1[controlPoints1.size()-1];
+    vec3 * curve1Penultimate = &controlPoints1[controlPoints1.size()-2];
+    vec3 * curve2First = &controlPoints2[0];
+    vec3 * curve2Second = &controlPoints2[1];
+
+    // Set the last point from the first curve to the first point of the second curve
+    curve2First->set( curve1Last->getX(), curve1Last->getY(), curve1Last->getZ() );
+}
+
 /* initialisation d'OpenGL*/
 static void init(void)
 {
@@ -160,20 +179,22 @@ static void init(void)
 	FOR(i,2)
 	{
         std::deque<vec3> controlPoints;
+
         vec3 translate( (p3.getX()-p0.getX())*i,0,0 );  // translate the curve
+        vec3 translateInverse( 0, (p1.getY()-p0.getY())*(i%2==0?0:-2),0 );  // translate the curve
+
         controlPoints.push_back( p0.addition( translate ) );
-        controlPoints.push_back( p1.addition( translate ) );
-        controlPoints.push_back( p2.addition( translate ) );
+        controlPoints.push_back( p1.addition( translate ).addition( translateInverse ) );
+        controlPoints.push_back( p2.addition( translate ).addition( translateInverse ) );
         controlPoints.push_back( p3.addition( translate ) );
+
         bernsteinControlVertices.push_back( controlPoints );
 	}
 }
 
-void drawCurve(std::deque<vec3> controlPoints, bool isSelected){
+void drawCurve(std::deque<vec3> bernsteinVertices, std::deque<vec3> controlPoints, bool isSelected){
     // calculate hermite curve
 	std::deque<vec3> hermiteVertices = hermite( controlPoints[0], controlPoints[3], v1, v2, 10 );
-	// calculate bernstein curve
-	std::deque<vec3> bernsteinVertices = bernstein( controlPoints, 10 );
 
 	// Print Hermite Curve
 	glBegin(GL_LINE_STRIP);
@@ -225,7 +246,15 @@ void display(void)
 	glLoadIdentity();
 
 	FOR(i,bernsteinControlVertices.size()){
-        drawCurve( bernsteinControlVertices[i], selectedCurve == i );
+        // adjust continuity
+        if( i > 0 ){
+            adjustContinuity1( bernsteinControlVertices[i-1], bernsteinControlVertices[i] );
+        }
+
+        // calculate bernstein curve
+        std::deque<vec3> bernsteinVertices = bernstein( bernsteinControlVertices[i], 10 );
+
+        drawCurve( bernsteinVertices, bernsteinControlVertices[i], selectedCurve == i );
 	}
 
 	glFlush();
@@ -237,7 +266,7 @@ void reshape(int w, int h)
    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-   glOrtho(-4, 4, -4, 4, -1, 1);
+   glOrtho(-6, 6, -6, 6, -1, 1);
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
 }
