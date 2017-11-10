@@ -30,6 +30,9 @@
 
 float tx=0.0;
 float ty=0.0;
+int selectedControlPoint = 0;
+double selectedControlPointSquareSize = 0.2;
+double selectedControlPointMoveStep = 0.2;
 
 vec3 p0( -2,-2,0 );
 vec3 p1( -1,1,0 );
@@ -117,15 +120,11 @@ static void init(void)
 	}
 	factorial[0] = 1;
 
-	// calculate hermite curve
-	hermiteVertices = hermite( p0, p3, v1, v2, 10 );
 	// setting bernstein control vertices
 	bernsteinControlVertices.push_back( p0 );
 	bernsteinControlVertices.push_back( p1 );
 	bernsteinControlVertices.push_back( p2 );
 	bernsteinControlVertices.push_back( p3 );
-	// calculate bernstein curve
-	bernsteinVertices = bernstein( bernsteinControlVertices, 10 );
 }
 
 /* Dessine de la courbe */
@@ -135,6 +134,11 @@ void display(void)
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	// calculate hermite curve
+	hermiteVertices = hermite( bernsteinControlVertices[0], bernsteinControlVertices[3], v1, v2, 10 );
+	// calculate bernstein curve
+	bernsteinVertices = bernstein( bernsteinControlVertices, 10 );
 
 	// Print Hermite Curve
 	glBegin(GL_LINE_STRIP);
@@ -161,6 +165,15 @@ void display(void)
 	}
 	glEnd();
 
+	// Draw a square that identifies the selected Control Point
+	glBegin(GL_LINE_LOOP);
+	glColor3f(0.,0.,1.);
+        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
+        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
+        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
+        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
+	glEnd();
+
 	glFlush();
 }
 
@@ -178,30 +191,30 @@ void reshape(int w, int h)
 void keyboard(unsigned char key, int x, int y)
 {
    switch (key) {
+       // Selecting Control Point
+    case '0': case '1': case '2': case '3':
+        selectedControlPoint = key - '0';
+        break;
 
+    // Moving Control Point
+    case 'd':    // move right
+       bernsteinControlVertices[selectedControlPoint].setX( bernsteinControlVertices[selectedControlPoint].getX()+selectedControlPointMoveStep );
+      break;
+    case 'q':    // move left
+       bernsteinControlVertices[selectedControlPoint].setX( bernsteinControlVertices[selectedControlPoint].getX()-selectedControlPointMoveStep );
+      break;
+    case 'z':    // move up
+       bernsteinControlVertices[selectedControlPoint].setY( bernsteinControlVertices[selectedControlPoint].getY()+selectedControlPointMoveStep );
+      break;
+    case 's':    // move down
+       bernsteinControlVertices[selectedControlPoint].setY( bernsteinControlVertices[selectedControlPoint].getY()-selectedControlPointMoveStep );
+      break;
 
-   case 'd':
-         tx=0.1;
-		 ty=0;
-      break;
-   case 'q':
-         tx=-0.1;
-		 ty=0;
-      break;
-   case 'z':
-         ty=0.1;
-		 tx=0;
-      break;
-   case 's':
-         ty=-0.1;
-		 tx=0;
-      break;
    case ESC:
       exit(0);
       break;
    default :
-	   tx=0;
-	   ty=0;
+       break;
    }
    glutPostRedisplay();
 }
