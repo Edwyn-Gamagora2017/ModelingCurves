@@ -56,7 +56,7 @@
 	"math.h"
 	"utils.h"
 
-1510159735 source:d:\documents_edwyn\github\modelisationcurves\main.cpp
+1510303512 source:d:\documents_edwyn\github\modelisationcurves\main.cpp
 	<windows.h>
 	<GL/glut.h>
 	<GL/glu.h>
@@ -66,6 +66,7 @@
 	<deque>
 	"struct.h"
 	"vec3.h"
+	"utils.h"
 
 1341003176 c:\program files (x86)\codeblocks\mingw\include\stdio.h
 	<_mingw.h>

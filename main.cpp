@@ -82,15 +82,15 @@ double getFactorial( int n ){
 
 // obtains the bernsteinB
 double getBernsteinB( int n, int i, double t ){
-    return getFactorial( n )/(getFactorial( i )*getFactorial( n-i ))*pow(t,i)*pow(1-t,n-i);
+    return (getFactorial( n )/(getFactorial( i )*getFactorial( n-i )))*pow(t,i) * pow(1-t,n-i);
 }
 
 // calculate the position on the Bernstein curve related to the factor u [0,1]
 vec3 bernstein( double u, std::deque<vec3> controlPoints ){
     // initializing the result with the first point
-    vec3 result = controlPoints[0].multiplication( getBernsteinB( controlPoints.size(), 0, u ) );
+    vec3 result = controlPoints[0].multiplication( getBernsteinB( controlPoints.size()-1, 0, u ) );
     for( int i = 1; i<controlPoints.size(); i++ ){
-        result.addition( controlPoints[i].multiplication( getBernsteinB( controlPoints.size(), i, u ) ) );
+        result = result.addition( controlPoints[i].multiplication( getBernsteinB( controlPoints.size()-1, i, u ) ) );
     }
     return result;
 }
@@ -146,6 +146,7 @@ void display(void)
 
 	// Print Bernstein Control
 	glBegin(GL_LINE_STRIP);
+	//glBegin(GL_POLYGON);
 	glColor3f(1.,0.,0.);
 	for( int i = 0; i < bernsteinControlVertices.size(); i++ ){
         glVertex3f( bernsteinControlVertices[i].getX(), bernsteinControlVertices[i].getY(), bernsteinControlVertices[i].getZ() );
