@@ -39,6 +39,7 @@ vec3 p0( -2,-2,0 );
 vec3 p1( -1,1,0 );
 vec3 p2( 1,1,0 );
 vec3 p3( 2,-2,0 );
+vec3 p4( 0,2,0 );
 vec3 v1( 1,5,0 );
 vec3 v2( 1,-5,0 );
 std::deque<std::deque<vec3>> bernsteinControlVertices;
@@ -144,6 +145,22 @@ std::deque<vec3> bernstein( std::deque<vec3> controlPoints, int amountSamples ){
     return result;
 }
 
+// Set the position of the point 1 to the point 2
+void adjustContinuity( vec3 * controlPoint1, vec3 * controlPoint2 ){
+    controlPoint2->setX(controlPoint1->getX());
+    controlPoint2->setY(controlPoint1->getY());
+    controlPoint2->setZ(controlPoint1->getZ());
+}
+
+// Set the inverse of the position of the point 1 to the point 2 (relative to the center)
+void adjustContinuityTangent( vec3 * centerPoint, vec3 * controlPoint1, vec3 * controlPoint2 ){
+    vec3 distance = controlPoint1->soustraction( *centerPoint );
+
+    controlPoint2->setX(centerPoint->getX()-distance.getX());
+    controlPoint2->setY(centerPoint->getY()-distance.getY());
+    controlPoint2->setZ(centerPoint->getZ()-distance.getZ());
+}
+
 /* initialisation d'OpenGL*/
 static void init(void)
 {
@@ -157,23 +174,36 @@ static void init(void)
 	factorial[0] = 1;
 
 	// setting bernstein control vertices
-	FOR(i,2)
+	FOR(i,3)
 	{
         std::deque<vec3> controlPoints;
+
         vec3 translate( (p3.getX()-p0.getX())*i,0,0 );  // translate the curve
+        vec3 translateInverse( 0, (p1.getY()-p0.getY())*(i%2==0?0:-2),0 );  // translate the curve
+
         controlPoints.push_back( p0.addition( translate ) );
-        controlPoints.push_back( p1.addition( translate ) );
-        controlPoints.push_back( p2.addition( translate ) );
+        controlPoints.push_back( p1.addition( translate ).addition( translateInverse ) );
+        controlPoints.push_back( p2.addition( translate ).addition( translateInverse ) );
         controlPoints.push_back( p3.addition( translate ) );
+
         bernsteinControlVertices.push_back( controlPoints );
+
+        // adjust continuity
+        if( i > 0 ){
+            adjustContinuity( &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-1], &bernsteinControlVertices[i][0] );
+            adjustContinuityTangent( &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-1], &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-2], &bernsteinControlVertices[i][1] );
+        }
 	}
 }
 
-void drawCurve(std::deque<vec3> controlPoints, bool isSelected){
+void drawCurve(std::deque<vec3> bernsteinVertices, std::deque<vec3> controlPoints, bool isSelected){
     // calculate hermite curve
-	std::deque<vec3> hermiteVertices = hermite( controlPoints[0], controlPoints[3], v1, v2, 10 );
-	// calculate bernstein curve
-	std::deque<vec3> bernsteinVertices = bernstein( controlPoints, 10 );
+	std::deque<vec3> hermiteVertices = hermite( controlPoints[0],
+                                                controlPoints[3],
+                                                controlPoints[1].soustraction( controlPoints[0] ),
+                                                controlPoints[controlPoints.size()-1].soustraction( controlPoints[controlPoints.size()-2] ),
+                                                10
+                                                );
 
 	// Print Hermite Curve
 	glBegin(GL_LINE_STRIP);
@@ -225,7 +255,17 @@ void display(void)
 	glLoadIdentity();
 
 	FOR(i,bernsteinControlVertices.size()){
-        drawCurve( bernsteinControlVertices[i], selectedCurve == i );
+        // adjust continuity
+        // HERE it blocks modifications on the begin of the curves
+        /*if( i > 0 ){
+            adjustContinuity( &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-1], &bernsteinControlVertices[i][0] );
+            adjustContinuityTangent( &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-1], &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-2], &bernsteinControlVertices[i][1] );
+        }*/
+
+        // calculate bernstein curve
+        std::deque<vec3> bernsteinVertices = bernstein( bernsteinControlVertices[i], 10 );
+
+        drawCurve( bernsteinVertices, bernsteinControlVertices[i], selectedCurve == i );
 	}
 
 	glFlush();
@@ -237,7 +277,7 @@ void reshape(int w, int h)
    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-   glOrtho(-4, 4, -4, 4, -1, 1);
+   glOrtho(-3, 11, -7, 7, -1, 1);
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
 }
@@ -250,7 +290,7 @@ void keyboard(unsigned char key, int x, int y)
         selectedControlPoint = key - '0';
         break;
         // Selecting Curve
-    case '7': case '8':
+    case '7': case '8': case '9':
         if( bernsteinControlVertices.size() > key - '7' ){
             selectedCurve = key - '7';
         }
@@ -276,6 +316,23 @@ void keyboard(unsigned char key, int x, int y)
    default :
        break;
    }
+
+    // adjust continuity
+    if( selectedCurve < bernsteinControlVertices.size()-1 && selectedControlPoint == bernsteinControlVertices[selectedCurve].size()-1 ){
+        adjustContinuity( &bernsteinControlVertices[selectedCurve][selectedControlPoint], &bernsteinControlVertices[selectedCurve+1][0] );
+        adjustContinuityTangent( &bernsteinControlVertices[selectedCurve][selectedControlPoint], &bernsteinControlVertices[selectedCurve][selectedControlPoint-1], &bernsteinControlVertices[selectedCurve+1][1] );
+    }
+    else if( selectedCurve > 0 && selectedControlPoint == 0 ){
+        adjustContinuity( &bernsteinControlVertices[selectedCurve][selectedControlPoint], &bernsteinControlVertices[selectedCurve-1][bernsteinControlVertices[selectedCurve-1].size()-1] );
+        adjustContinuityTangent( &bernsteinControlVertices[selectedCurve][selectedControlPoint], &bernsteinControlVertices[selectedCurve][selectedControlPoint+1], &bernsteinControlVertices[selectedCurve-1][bernsteinControlVertices[selectedCurve-1].size()-2] );
+    }
+    else if( selectedCurve < bernsteinControlVertices.size()-1 && selectedControlPoint == bernsteinControlVertices[selectedCurve].size()-2 ){
+        adjustContinuityTangent( &bernsteinControlVertices[selectedCurve][selectedControlPoint+1], &bernsteinControlVertices[selectedCurve][selectedControlPoint], &bernsteinControlVertices[selectedCurve+1][1] );
+    }
+    else if( selectedCurve > 0 && selectedControlPoint == 1 ){
+        adjustContinuityTangent( &bernsteinControlVertices[selectedCurve][selectedControlPoint-1], &bernsteinControlVertices[selectedCurve][selectedControlPoint], &bernsteinControlVertices[selectedCurve-1][bernsteinControlVertices[selectedCurve-1].size()-2] );
+    }
+
    glutPostRedisplay();
 }
 
