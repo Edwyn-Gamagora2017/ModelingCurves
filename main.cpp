@@ -30,6 +30,7 @@
 
 float tx=0.0;
 float ty=0.0;
+int selectedCurve = 0;
 int selectedControlPoint = 0;
 double selectedControlPointSquareSize = 0.2;
 double selectedControlPointMoveStep = 0.2;
@@ -40,9 +41,7 @@ vec3 p2( 1,1,0 );
 vec3 p3( 2,-2,0 );
 vec3 v1( 1,5,0 );
 vec3 v2( 1,-5,0 );
-std::deque<vec3> hermiteVertices;
-std::deque<vec3> bernsteinVertices;
-std::deque<vec3> bernsteinControlVertices;
+std::deque<std::deque<vec3>> bernsteinControlVertices;
 int maxFactorial = 100;
 double * factorial;
 
@@ -68,6 +67,43 @@ std::deque<vec3> hermite( vec3 p1, vec3 p2, vec3 v1, vec3 v2, int amountSamples 
     std::deque<vec3> result;
     for( int i=0; i<amount; i++ ){
         result.push_back( hermite( i/((double)amount-1), p1, p2, v1, v2 ) );
+    }
+    return result;
+}
+
+// Calculating box vertices
+std::deque<vec3> boxPoints( std::deque<vec3> controlPoints ){
+    // TODO: The idea does not work
+    std::deque<vec3> result;
+    // initial value
+    result.push_back( controlPoints[0] );   // BottomLeft
+    result.push_back( controlPoints[0] );   // BottomRight
+    result.push_back( controlPoints[0] );   // UpRight
+    result.push_back( controlPoints[0] );   // UpLeft
+    for(int i=1; i<controlPoints.size(); i++){
+std::cout << i << std::endl;
+std::cout << controlPoints[i].getX()<<"x"<<result[2].getX() << std::endl;
+std::cout << controlPoints[i].getY()<<"x"<<result[2].getY() << std::endl;
+        // BottomLeft
+        if( controlPoints[i].getX() < result[0].getX() && controlPoints[i].getY() < result[0].getY() ){
+std::cout << "bl" << std::endl;
+            result[0] = controlPoints[i];
+        }
+        // BottomRight
+        if( controlPoints[i].getX() > result[1].getX() && controlPoints[i].getY() < result[1].getY() ){
+std::cout << "br" << std::endl;
+            result[1] = controlPoints[i];
+        }
+        // UpRight
+        if( controlPoints[i].getX() > result[2].getX() && controlPoints[i].getY() > result[2].getY() ){
+std::cout << "ur" << std::endl;
+            result[2] = controlPoints[i];
+        }
+        // UpLeft
+        if( controlPoints[i].getX() < result[3].getX() && controlPoints[i].getY() > result[3].getY() ){
+std::cout << "ul" << std::endl;
+            result[3] = controlPoints[i];
+        }
     }
     return result;
 }
@@ -121,24 +157,23 @@ static void init(void)
 	factorial[0] = 1;
 
 	// setting bernstein control vertices
-	bernsteinControlVertices.push_back( p0 );
-	bernsteinControlVertices.push_back( p1 );
-	bernsteinControlVertices.push_back( p2 );
-	bernsteinControlVertices.push_back( p3 );
+	FOR(i,2)
+	{
+        std::deque<vec3> controlPoints;
+        vec3 translate( (p3.getX()-p0.getX())*i,0,0 );  // translate the curve
+        controlPoints.push_back( p0.addition( translate ) );
+        controlPoints.push_back( p1.addition( translate ) );
+        controlPoints.push_back( p2.addition( translate ) );
+        controlPoints.push_back( p3.addition( translate ) );
+        bernsteinControlVertices.push_back( controlPoints );
+	}
 }
 
-/* Dessine de la courbe */
-void display(void)
-{
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	// calculate hermite curve
-	hermiteVertices = hermite( bernsteinControlVertices[0], bernsteinControlVertices[3], v1, v2, 10 );
+void drawCurve(std::deque<vec3> controlPoints, bool isSelected){
+    // calculate hermite curve
+	std::deque<vec3> hermiteVertices = hermite( controlPoints[0], controlPoints[3], v1, v2, 10 );
 	// calculate bernstein curve
-	bernsteinVertices = bernstein( bernsteinControlVertices, 10 );
+	std::deque<vec3> bernsteinVertices = bernstein( controlPoints, 10 );
 
 	// Print Hermite Curve
 	glBegin(GL_LINE_STRIP);
@@ -148,13 +183,17 @@ void display(void)
 	}
 	glEnd();
 
-	// Print Bernstein Control
-	glBegin(GL_LINE_STRIP);
+	// Print Bernstein Control Box
+	glBegin(GL_LINE_LOOP);
 	//glBegin(GL_POLYGON);
 	glColor3f(1.,0.,0.);
-	for( int i = 0; i < bernsteinControlVertices.size(); i++ ){
-        glVertex3f( bernsteinControlVertices[i].getX(), bernsteinControlVertices[i].getY(), bernsteinControlVertices[i].getZ() );
+	for( int i = 0; i < controlPoints.size(); i++ ){
+        glVertex3f( controlPoints[i].getX(), controlPoints[i].getY(), controlPoints[i].getZ() );
 	}
+	/*std::deque<vec3> box = boxPoints( bernsteinControlVertices );
+	for( int i = 0; i < box.size(); i++ ){
+        glVertex3f( box[i].getX(), box[i].getY(), box[i].getZ() );
+	}*/
 	glEnd();
 
 	// Print Bernstein Curve
@@ -166,13 +205,28 @@ void display(void)
 	glEnd();
 
 	// Draw a square that identifies the selected Control Point
-	glBegin(GL_LINE_LOOP);
-	glColor3f(0.,0.,1.);
-        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
-        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
-        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
-        glVertex3f( bernsteinControlVertices[ selectedControlPoint ].getX() + selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getY() - selectedControlPointSquareSize/2., bernsteinControlVertices[ selectedControlPoint ].getZ() );
-	glEnd();
+    if( isSelected ){
+        glBegin(GL_LINE_LOOP);
+        glColor3f(0.,0.,1.);
+            glVertex3f( controlPoints[ selectedControlPoint ].getX() - selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getY() - selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getZ() );
+            glVertex3f( controlPoints[ selectedControlPoint ].getX() - selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getY() + selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getZ() );
+            glVertex3f( controlPoints[ selectedControlPoint ].getX() + selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getY() + selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getZ() );
+            glVertex3f( controlPoints[ selectedControlPoint ].getX() + selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getY() - selectedControlPointSquareSize/2., controlPoints[ selectedControlPoint ].getZ() );
+        glEnd();
+    }
+}
+
+/* Dessine de la courbe */
+void display(void)
+{
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	FOR(i,bernsteinControlVertices.size()){
+        drawCurve( bernsteinControlVertices[i], selectedCurve == i );
+	}
 
 	glFlush();
 }
@@ -195,19 +249,25 @@ void keyboard(unsigned char key, int x, int y)
     case '0': case '1': case '2': case '3':
         selectedControlPoint = key - '0';
         break;
+        // Selecting Curve
+    case '7': case '8':
+        if( bernsteinControlVertices.size() > key - '7' ){
+            selectedCurve = key - '7';
+        }
+        break;
 
     // Moving Control Point
     case 'd':    // move right
-       bernsteinControlVertices[selectedControlPoint].setX( bernsteinControlVertices[selectedControlPoint].getX()+selectedControlPointMoveStep );
+       bernsteinControlVertices[selectedCurve][selectedControlPoint].setX( bernsteinControlVertices[selectedCurve][selectedControlPoint].getX()+selectedControlPointMoveStep );
       break;
     case 'q':    // move left
-       bernsteinControlVertices[selectedControlPoint].setX( bernsteinControlVertices[selectedControlPoint].getX()-selectedControlPointMoveStep );
+       bernsteinControlVertices[selectedCurve][selectedControlPoint].setX( bernsteinControlVertices[selectedCurve][selectedControlPoint].getX()-selectedControlPointMoveStep );
       break;
     case 'z':    // move up
-       bernsteinControlVertices[selectedControlPoint].setY( bernsteinControlVertices[selectedControlPoint].getY()+selectedControlPointMoveStep );
+       bernsteinControlVertices[selectedCurve][selectedControlPoint].setY( bernsteinControlVertices[selectedCurve][selectedControlPoint].getY()+selectedControlPointMoveStep );
       break;
     case 's':    // move down
-       bernsteinControlVertices[selectedControlPoint].setY( bernsteinControlVertices[selectedControlPoint].getY()-selectedControlPointMoveStep );
+       bernsteinControlVertices[selectedCurve][selectedControlPoint].setY( bernsteinControlVertices[selectedCurve][selectedControlPoint].getY()-selectedControlPointMoveStep );
       break;
 
    case ESC:
