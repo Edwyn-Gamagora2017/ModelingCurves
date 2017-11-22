@@ -28,6 +28,9 @@
 
 #define ESC 27
 
+int nCurves = 3;            // Amount of curves
+bool isBernstein = true;   // Bernstein or Casteljau
+
 float tx=0.0;
 float ty=0.0;
 int selectedCurve = 0;
@@ -42,7 +45,7 @@ vec3 p3( 2,-2,0 );
 vec3 p4( 0,2,0 );
 vec3 v1( 1,5,0 );
 vec3 v2( 1,-5,0 );
-std::deque<std::deque<vec3>> bernsteinControlVertices;
+std::deque< std::deque<vec3> > bernsteinControlVertices;
 int maxFactorial = 100;
 double * factorial;
 
@@ -72,43 +75,6 @@ std::deque<vec3> hermite( vec3 p1, vec3 p2, vec3 v1, vec3 v2, int amountSamples 
     return result;
 }
 
-// Calculating box vertices
-std::deque<vec3> boxPoints( std::deque<vec3> controlPoints ){
-    // TODO: The idea does not work
-    std::deque<vec3> result;
-    // initial value
-    result.push_back( controlPoints[0] );   // BottomLeft
-    result.push_back( controlPoints[0] );   // BottomRight
-    result.push_back( controlPoints[0] );   // UpRight
-    result.push_back( controlPoints[0] );   // UpLeft
-    for(int i=1; i<controlPoints.size(); i++){
-std::cout << i << std::endl;
-std::cout << controlPoints[i].getX()<<"x"<<result[2].getX() << std::endl;
-std::cout << controlPoints[i].getY()<<"x"<<result[2].getY() << std::endl;
-        // BottomLeft
-        if( controlPoints[i].getX() < result[0].getX() && controlPoints[i].getY() < result[0].getY() ){
-std::cout << "bl" << std::endl;
-            result[0] = controlPoints[i];
-        }
-        // BottomRight
-        if( controlPoints[i].getX() > result[1].getX() && controlPoints[i].getY() < result[1].getY() ){
-std::cout << "br" << std::endl;
-            result[1] = controlPoints[i];
-        }
-        // UpRight
-        if( controlPoints[i].getX() > result[2].getX() && controlPoints[i].getY() > result[2].getY() ){
-std::cout << "ur" << std::endl;
-            result[2] = controlPoints[i];
-        }
-        // UpLeft
-        if( controlPoints[i].getX() < result[3].getX() && controlPoints[i].getY() > result[3].getY() ){
-std::cout << "ul" << std::endl;
-            result[3] = controlPoints[i];
-        }
-    }
-    return result;
-}
-
 // obtains the factorial in the matrix. if it does not exist, create it
 double getFactorial( int n ){
     if( factorial[n] != 0 ){
@@ -125,7 +91,7 @@ double getBernsteinB( int n, int i, double t ){
     return (getFactorial( n )/(getFactorial( i )*getFactorial( n-i )))*pow(t,i) * pow(1-t,n-i);
 }
 
-// calculate the position on the Bernstein curve related to the factor u [0,1]
+// calculate the position on the Bezier curve (Bernstein) related to the factor u [0,1]
 vec3 bernstein( double u, std::deque<vec3> controlPoints ){
     // initializing the result with the first point
     vec3 result = controlPoints[0].multiplication( getBernsteinB( controlPoints.size()-1, 0, u ) );
@@ -135,7 +101,7 @@ vec3 bernstein( double u, std::deque<vec3> controlPoints ){
     return result;
 }
 
-// calculate the Bernstein curve. amountSamples defines the amount of samples in the curve
+// calculate the Bezier curve based on Bernstein algorithm. amountSamples defines the amount of samples in the curve
 std::deque<vec3> bernstein( std::deque<vec3> controlPoints, int amountSamples ){
     int amount = amountSamples+2;   // at least 2 samples will be created
     std::deque<vec3> result;
@@ -161,6 +127,26 @@ void adjustContinuityTangent( vec3 * centerPoint, vec3 * controlPoint1, vec3 * c
     controlPoint2->setZ(centerPoint->getZ()-distance.getZ());
 }
 
+// calculate the intermediate k position on the Bezier curve (Casteljau) related to the factor u [0,1]
+vec3 casteljauP( double u, int k, int i, std::deque<vec3> controlPoints ){
+    if( k == 0 ){
+        return controlPoints[i];
+    }
+    else{
+        return casteljauP( u, k-1, i, controlPoints ).multiplication( 1-u ).addition( casteljauP( u, k-1, i+1, controlPoints ).multiplication( u ) );
+    }
+}
+
+// calculate the Bezier curve based on Casteljau algorithm. amountSamples defines the amount of samples in the curve
+std::deque<vec3> casteljau( std::deque<vec3> controlPoints, int amountSamples ){
+    int amount = amountSamples+2;   // at least 2 samples will be created
+    std::deque<vec3> result;
+    for( int i=0; i<amount; i++ ){
+        result.push_back( casteljauP( i/((double)amount-1), controlPoints.size()-1, 0, controlPoints ) );
+    }
+    return result;
+}
+
 /* initialisation d'OpenGL*/
 static void init(void)
 {
@@ -174,7 +160,7 @@ static void init(void)
 	factorial[0] = 1;
 
 	// setting bernstein control vertices
-	FOR(i,3)
+	FOR(i,nCurves)
 	{
         std::deque<vec3> controlPoints;
 
@@ -226,7 +212,7 @@ void drawCurve(std::deque<vec3> bernsteinVertices, std::deque<vec3> controlPoint
 	}*/
 	glEnd();
 
-	// Print Bernstein Curve
+	// Print Bezier Curve (Bernstein)
 	glBegin(GL_LINE_STRIP);
 	glColor3f(0.,1.,0.);
 	for( int i = 0; i < bernsteinVertices.size(); i++ ){
@@ -262,8 +248,14 @@ void display(void)
             adjustContinuityTangent( &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-1], &bernsteinControlVertices[i-1][bernsteinControlVertices[i-1].size()-2], &bernsteinControlVertices[i][1] );
         }*/
 
-        // calculate bernstein curve
-        std::deque<vec3> bernsteinVertices = bernstein( bernsteinControlVertices[i], 10 );
+        std::deque<vec3> bernsteinVertices;
+        if( isBernstein ){
+            //calculate bezier curve (bernstein)
+            bernsteinVertices = bernstein( bernsteinControlVertices[i], 10 );
+        }else{
+            // calculate bezier curve (casteljau)
+            bernsteinVertices = casteljau( bernsteinControlVertices[i], 10 );
+        }
 
         drawCurve( bernsteinVertices, bernsteinControlVertices[i], selectedCurve == i );
 	}

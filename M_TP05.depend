@@ -17,10 +17,10 @@
 1506325284 d:\documents_edwyn\github\modelisationcurves\point3d.h
 	<string>
 
-1341003174 c:\program files (x86)\codeblocks\mingw\include\math.h
+1341006774 c:\program files (x86)\codeblocks\mingw\include\math.h
 	<_mingw.h>
 
-1341003170 c:\program files (x86)\codeblocks\mingw\include\_mingw.h
+1341006770 c:\program files (x86)\codeblocks\mingw\include\_mingw.h
 
 1506322410 source:d:\documents_edwyn\github\modelisationcurves\figure.cpp
 	"figure.h"
@@ -293,4 +293,20 @@
 
 1201549276 d:\documents_edwyn\github\modelisationcurves\struct.h
 	<iostream>
+
+1511345369 source:c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\utils.cpp
+	"utils.h"
+
+1511345369 c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\utils.h
+	<string>
+	<sstream>
+	<iostream>
+
+1511345369 source:c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\vec3.cpp
+	"vec3.h"
+	"math.h"
+	"utils.h"
+
+1511345369 c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\vec3.h
+	<string>
 
