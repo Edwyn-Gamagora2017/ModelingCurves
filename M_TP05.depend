@@ -68,21 +68,21 @@
 	"vec3.h"
 	"utils.h"
 
-1341003176 c:\program files (x86)\codeblocks\mingw\include\stdio.h
+1341006776 c:\program files (x86)\codeblocks\mingw\include\stdio.h
 	<_mingw.h>
 	<stddef.h>
 	<stdarg.h>
 	<sys/types.h>
 
-1341003180 c:\program files (x86)\codeblocks\mingw\include\sys\types.h
+1341006780 c:\program files (x86)\codeblocks\mingw\include\sys\types.h
 	<_mingw.h>
 	<stddef.h>
 
-1341003176 c:\program files (x86)\codeblocks\mingw\include\stdlib.h
+1341006776 c:\program files (x86)\codeblocks\mingw\include\stdlib.h
 	<_mingw.h>
 	<stddef.h>
 
-1505748166 c:\program files (x86)\codeblocks\mingw\include\gl\glut.h
+1505751768 c:\program files (x86)\codeblocks\mingw\include\gl\glut.h
 	<windows.h>
 	<GL/gl.h>
 	<GL/glu.h>
@@ -136,7 +136,7 @@
 
 1301111162 c:\program files (x86)\codeblocks\mingw\include\winerror.h
 
-1341003176 c:\program files (x86)\codeblocks\mingw\include\string.h
+1341006776 c:\program files (x86)\codeblocks\mingw\include\string.h
 	<_mingw.h>
 	<stddef.h>
 
@@ -206,7 +206,7 @@
 
 1301111158 c:\program files (x86)\codeblocks\mingw\include\rpcnterr.h
 
-1341003172 c:\program files (x86)\codeblocks\mingw\include\excpt.h
+1341006772 c:\program files (x86)\codeblocks\mingw\include\excpt.h
 	<_mingw.h>
 	<windef.h>
 
@@ -309,4 +309,31 @@
 
 1511345369 c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\vec3.h
 	<string>
+
+1511348228 source:c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\main.cpp
+	<windows.h>
+	<GL/glut.h>
+	<GL/glu.h>
+	<stdio.h>
+	<math.h>
+	<stdlib.h>
+	<deque>
+	"struct.h"
+	"vec3.h"
+	"utils.h"
+
+1511345369 c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\struct.h
+	<iostream>
+
+1516783202 source:c:\users\edwyn luis\documents\lyon\gamagora\modelisation_geometrique\projetos\modelisationcurves\main.subdivis.cpp
+	<windows.h>
+	<GL/glut.h>
+	<GL/glu.h>
+	<stdio.h>
+	<math.h>
+	<stdlib.h>
+	<deque>
+	"struct.h"
+	"vec3.h"
+	"utils.h"
 
